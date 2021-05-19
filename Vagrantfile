@@ -14,8 +14,8 @@ Vagrant.configure("2") do |config|
     dc.winrm.retry_delay = 10
     dc.vm.box = "StefanScherer/windows_2019"
     dc.vm.network "private_network", ip: "192.168.56.10"
-    dc.vm.network :forwarded_port, guest: 3389, host: 23389, id: "msrdp"
-    dc.vm.network :forwarded_port, guest: 5985, host: 25985, id: "winrm"
+    dc.vm.network "forwarded_port", guest: 3389, host: 23389, id: "msrdp"
+    dc.vm.network "forwarded_port", guest: 5985, host: 25985, id: "winrm"
     dc.vm.provision "shell", path:"ConfigureRemotingForAnsible.ps1"
   end
 
@@ -28,8 +28,8 @@ Vagrant.configure("2") do |config|
     win_server.winrm.retry_delay = 10
     win_server.vm.box = "StefanScherer/windows_2019"
     win_server.vm.network "private_network", ip: "192.168.56.11"
-    win_server.vm.network :forwarded_port, guest: 3389, host: 33389, id: "msrdp"
-    win_server.vm.network :forwarded_port, guest: 5985, host: 35985, id: "winrm"
+    win_server.vm.network "forwarded_port", guest: 3389, host: 33389, id: "msrdp"
+    win_server.vm.network "forwarded_port", guest: 5985, host: 35985, id: "winrm"
     win_server.vm.provision "shell", path:"ConfigureRemotingForAnsible.ps1"
   end
 
@@ -42,21 +42,21 @@ Vagrant.configure("2") do |config|
     win_workstation.winrm.retry_delay = 10    
     win_workstation.vm.box = "StefanScherer/windows_10"
     win_workstation.vm.network "private_network", ip: "192.168.56.12"
-    win_workstation.vm.network :forwarded_port, guest: 3389, host: 43389, id: "msrdp"
-    win_workstation.vm.network :forwarded_port, guest: 5985, host: 45985, id: "winrm"
+    win_workstation.vm.network "forwarded_port", guest: 3389, host: 43389, id: "msrdp"
+    win_workstation.vm.network "forwarded_port", guest: 5985, host: 45985, id: "winrm"
     win_workstation.vm.provision "shell", path:"ConfigureRemotingForAnsible.ps1"
   end
 
   config.vm.define "ubuntu_domain" do |ubuntu_domain|
     ubuntu_domain.vm.box = "ubuntu/focal64"
     ubuntu_domain.vm.network "private_network", ip: "192.168.56.13"
-    ubuntu_domain.vm.network :forwarded_port, guest: 22, host: 10022, id: "msrdp"
+    ubuntu_domain.vm.network "forwarded_port", guest: 22, host: 10022, id: "sshd"
   end
 
   config.vm.define "ubuntu_outside" do |ubuntu_outside|
     ubuntu_outside.vm.box = "ubuntu/focal64"
     ubuntu_outside.vm.network "private_network", ip: "192.168.56.14"
-    ubuntu_outside.vm.network :forwarded_port, guest: 22, host: 20022, id: "msrdp"
+    ubuntu_outside.vm.network "forwarded_port", guest: 22, host: 20022, id: "sshd"
   end
 
 end
