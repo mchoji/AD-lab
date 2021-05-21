@@ -9,6 +9,18 @@
     Ensure: present
     UserAuthentication: Secure
 
+- name: Windows | Check for PackageManagement Powershell module
+  win_psmodule:
+    name: PackageManagement
+    repository: PSGallery
+    state: present
+
+- name: Windows | Check for PowerShellGet Powershell module
+  win_psmodule:
+    name: PowerShellGet
+    repository: PSGallery
+    state: present
+
 - name: Windows | Check for xNetworking Powershell module
   win_psmodule:
     name: xNetworking
