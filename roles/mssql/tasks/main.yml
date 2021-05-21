@@ -23,7 +23,7 @@
 # Load required powershell modules
 - name: Powershell | Check for SQLServer DSC Powershell module
   win_psmodule:
-    name: SQLServerDsc
+    name: SqlServerDsc
     state: present
 
 - name: Powershell | Check for Storage DSC Powershell module
@@ -55,7 +55,7 @@
 # Setup service accounts
 #
 # We delegate this process to our domain controller since the required AD services are there for
-# win_domain_user to interact with. 
+# win_domain_user to interact with.
 - name: Active Directory | Ensure SQL Service account is present
   win_domain_user:
     name: "{{ mssql_sqlsvc_account | regex_search('[^\\\\]*$') }}"
@@ -119,14 +119,14 @@
   win_shell: "{{ mssql_installation_path }}\\SQLServer2017-DEV-x64-ENU.exe /X:{{ mssql_installation_path }}\\Media /Q"
 # If this step fails, logs are in C:\Program Files\Microsoft SQL Server\...\Setup Bootstrap\Log
 # it will often contain the actual error.  If it shows everything passing, the issue is within the DSC logs.
-# 
+#
 # This module also typically throws this error fpr all failure conditions:
-# PowerShell DSC resource MSFT_SqlSetup  failed to execute Set-TargetResource functionality with error message: 
+# PowerShell DSC resource MSFT_SqlSetup  failed to execute Set-TargetResource functionality with error message:
 # System.Exception: Test-TargetResource returned false after calling Set-TargetResource.
 #
 #
 # This document can also be useful to troubleshoot issues with DSC modules
-# https://docs.microsoft.com/en-us/powershell/dsc/troubleshooting 
+# https://docs.microsoft.com/en-us/powershell/dsc/troubleshooting
 #
 # In particular completing these steps:
 # https://docs.microsoft.com/en-us/powershell/dsc/troubleshooting#gathering-events-from-a-single-dsc-operation
@@ -152,9 +152,9 @@
     SuppressReboot: "{{ mssql_suppress_reboot }}"
     # Service Accounts
     #
-    # If the type of the DSC resource option is a PSCredential then 
-    # there needs to be 2 options set in the Ansible task definition 
-    # suffixed with _username and _password. So we will be providing 
+    # If the type of the DSC resource option is a PSCredential then
+    # there needs to be 2 options set in the Ansible task definition
+    # suffixed with _username and _password. So we will be providing
     # two options for these normally single option items.
 
     # SQL Service Account
@@ -167,11 +167,11 @@
     ASSvcAccount_username: "{{ mssql_assvc_account }}"
     ASSvcAccount_password: "{{ mssql_assvc_account_pass }}"
 
-    # Used when installing on a network path, comment out 
+    # Used when installing on a network path, comment out
     # SourceCredential_username: "{{ ansible_user }}"
     # SourceCredential_password: "{{ ansible_password }}"
 
-    # System Admins 
+    # System Admins
     SQLSysAdminAccounts: "{{ mssql_sysadmin_accounts }}"
     # Analysis Services Admins (if installed)
     ASSysAdminAccounts: "{{ mssql_asadmin_accounts }}"
@@ -184,13 +184,13 @@
   win_dsc:
     resource_name: xFirewall
     Name: "SQL Server Database Engine instance {{ mssql_instance_name }}"
-    Program: sqlservr.exe 
+    Program: sqlservr.exe
     Ensure: present
     Enabled: True
     Profile: "Domain"
     Direction: "Inbound"
     Action: Allow
-    Description: "Allows the Database Engine to access the network"  
+    Description: "Allows the Database Engine to access the network"
   tags: configure_firewall
 
 - name: Firewall | Allow SQLBrowser for instance
@@ -203,7 +203,7 @@
     Profile: "Domain"
     Direction: "Inbound"
     Action: Allow
-    Description: "Allows the SQL Server Browser to access the network"  
+    Description: "Allows the SQL Server Browser to access the network"
   tags: configure_firewall
 
 # Begin SQL Server configuration
@@ -220,7 +220,7 @@
 - name: Adjust Max Server Memory to {{ mssql_max_server_memory }}
   when: mssql_max_server_memory is defined
   win_dsc:
-    resource_name: SqlServerConfiguration 
+    resource_name: SqlConfiguration
     InstanceName: "{{ mssql_instance_name }}"
     ServerName: "{{ ansible_hostname }}"
     OptionName: max server memory (MB)
@@ -232,7 +232,7 @@
 - name: Adjust Min Server Memory to {{ mssql_min_server_memory }}
   when: mssql_min_server_memory is defined
   win_dsc:
-    resource_name: SqlServerConfiguration 
+    resource_name: SqlConfiguration
     ServerName: "{{ ansible_hostname }}"
     InstanceName: "{{ mssql_instance_name }}"
     OptionName: min server memory (MB)
@@ -243,7 +243,7 @@
 - name: Adjust Max Degree of Parallelism
   when: mssql_max_degree_of_parallelism is defined
   win_dsc:
-    resource_name: SqlServerConfiguration 
+    resource_name: SqlConfiguration
     ServerName: "{{ ansible_hostname }}"
     InstanceName: "{{ mssql_instance_name }}"
     OptionName: max degree of parallelism
