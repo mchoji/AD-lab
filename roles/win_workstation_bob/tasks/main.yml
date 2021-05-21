@@ -1,0 +1,6 @@
+- name: Ensure that bob@cyberloop.local is present as local administrator
+  win_group_membership:
+    name: Administrators
+    Members:
+      - bob@CYBERLOOP.local
+    state: present

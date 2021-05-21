@@ -22,6 +22,7 @@
     state: present
   become: yes
 
-- pip:
+- name: Install pexpect python package 
+  pip:
     name: pexpect
   become: yes

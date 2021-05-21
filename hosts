@@ -28,9 +28,9 @@ ansible_connection=winrm
 ansible_port=5985
 ansible_winrm_server_cert_validation=ignore
 
-[ubuntu_domain]
+[linux_srv_in_domain]
 192.168.56.13
 
-[ubuntu_outside]
+[linux_srv_out_domain]
 192.168.56.14
 

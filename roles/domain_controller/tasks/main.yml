@@ -5,7 +5,7 @@
     - chocolatey-core.extension
     state: present
 
-- name: disable enhanced exit codes
+- name: Disable enhanced exit codes
   win_chocolatey_feature:
     name: useEnhancedExitCodes
     state: disabled
@@ -144,14 +144,14 @@
     path: DC=cyberloop,DC=local
     state: present
 
-- name: Create DBAEnterprise Group ...
+- name: Create DBAEnterprise Group
   win_domain_group:
     name: DBAEnterprise
     scope: global
     path: DC=cyberloop,DC=local
     state: present
 
-- name: Create a Test Group ...
+- name: Create a Test Group
   win_domain_group:
     name: JustATestDemo
     scope: global
