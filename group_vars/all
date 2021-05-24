@@ -1,16 +1,27 @@
-domain: cyberloop.local
+domain_name: "cyberloop.local"
+domain_path:
+  - 'CYBERLOOP'
+  - 'local'
+ntp_servers: "0.pool.ntp.org,1.pool.ntp.org,2.pool.ntp.org,3.pool.ntp.org"
+reverse_dns_zone: "192.168.56.0/24"
+upstream_dns_1: 8.8.8.8
+upstream_dns_2: 8.8.4.4
 
 # Passwords
+# Note: 'Administrator' is local admin, while 'admin' is domain admin
 
-Administrator_pass: StrongPass123!
-admin_pass: StrongPass123!
-bob_pass: StrongPass123!
-alice_pass: StrongPass123!
-vagrant_pass: vagrant
+Administrator_pass: 'StrongPass123!'
+recovery_pass: 'P@ssw0rd'
+admin_pass: 'VeryStrongPass123!'
+bob_pass: 'Cyberloop@2021'
+alice_pass: 'Butterfly123!'
+vagrant_pass: 'vagrant'
 
 # IP addresses
 
 dc_ip: 192.168.56.10
+dc_netmask_cidr: 24
+
 
 # Hostnames
 

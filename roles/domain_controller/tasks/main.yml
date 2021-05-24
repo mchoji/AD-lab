@@ -1,3 +1,28 @@
+---
+# tasks file for domain_controller
+
+- name: Assert mandatory variables have been set
+  assert: { that: "{{ item }} is defined" }
+  with_items:
+    - Administrator_pass
+    - admin_pass
+    - alice_pass
+    - bob_pass
+    - dc_ip
+    - dc_netmask_cidr
+    - dc_hostname
+    - domain_name
+    - domain_path
+    - ntp_servers
+    - recovery_pass
+    - reverse_dns_zone
+    - upstream_dns_1
+    - upstream_dns_2
+
+- name: Wait for system to become reachable over WinRM
+  wait_for_connection:
+    timeout: 900
+
 - name: Ensure chocolatey is installed
   win_chocolatey:
     name:
@@ -24,39 +49,91 @@
   - wget
   - pstools
 
+- name: Ensure that Administrator is present with a valid password
+  win_user:
+    name: Administrator
+    password: '{{ Administrator_pass }}'
+    password_never_expires: yes
+    state: present
+  ignore_errors: yes
+
+- name: Set upstream DNS server
+  win_dns_client:
+    adapter_names: '*'
+    ipv4_addresses:
+      - '{{ upstream_dns_1 }}'
+      - '{{ upstream_dns_2 }}'
+
+- name: Stop the time service
+  win_service:
+    name: w32time
+    state: stopped
+
+- name: Set NTP Servers
+  win_shell: 'w32tm /config /syncfromflags:manual /manualpeerlist:"{{ ntp_servers }}"'
+
+- name: Start the time service
+  win_service:
+    name: w32time
+    state: started
+
+- name: Disable firewall for Domain, Public and Private profiles
+  win_firewall:
+    state: disabled
+    profiles:
+      - Domain
+      - Private
+      - Public
+  tags: disable_firewall
+
 - name: Change the hostname to domain-controller
   win_hostname:
-    name: domain-controller
+    name: '{{ dc_hostname }}'
   register: win_hostname
 
 - name: Reboot
   win_reboot:
   when: win_hostname.reboot_required
-  
-- name: Ensure that Administrator is present with a valid password
-  win_user:
-    name: Administrator
-    password: StrongPass123!
-    password_never_expires: yes
-    state: present
-  ignore_errors: yes
 
-- name: Ensure that cyberloop.local domain exixts
+- name: Install Active Directory
+  win_feature:
+    name: AD-Domain-Services
+    include_management_tools: yes
+    include_sub_features: yes
+    state: present
+  register: domain_services
+
+- name: Ensure that '{{ domain_name }}' domain exists
   win_domain:
-    dns_domain_name: cyberloop.local
-    safe_mode_password: StrongPass123!
+    dns_domain_name: '{{ domain_name }}'
+    safe_mode_password: '{{ recovery_pass }}'
   register: check_domain
 
-- name: Reboot to complete cyberloop.local domain creation
+- name: Reboot to complete '{{ domain_name }}' domain creation
   win_reboot:
+    msg: "Installing AD. Rebooting..."
+    pre_reboot_delay: 15
   when: check_domain.changed
+
+- name: Set internal DNS server
+  win_dns_client:
+    adapter_names: '*'
+    ipv4_addresses:
+      - '127.0.0.1'
+
+- name: Create reverse DNS zone
+  win_shell: "Add-DnsServerPrimaryZone -NetworkID {{ reverse_dns_zone }} -ReplicationScope Forest"
+  retries: 30
+  delay: 60
+  register: result
+  until: result is succeeded
 
 - name: Ensure the server is a domain controller
   win_domain_controller:
-    dns_domain_name: cyberloop.local
-    domain_admin_user: Administrator@cyberloop.local
-    domain_admin_password: StrongPass123!
-    safe_mode_password: StrongPass123!
+    dns_domain_name: '{{ domain_name }}'
+    domain_admin_user: 'admin@{{ domain_name }}'
+    domain_admin_password: '{{ admin_pass }}'
+    safe_mode_password: '{{ recovery_pass }}'
     state: domain_controller
     log_path: C:\ansible_win_domain_controller.txt
   register: check_domain_controller
@@ -65,95 +142,91 @@
   win_reboot:
   when: check_domain_controller.changed
 
-- name: Check for DnsServerDsc Powershell module
-  win_psmodule:
-    name: DnsServerDsc
-    allow_prerelease: yes
-    state: present
-
-- name: Configure DNS Forwarders
-  win_dsc:
-    resource_name: DnsServerForwarder
-    IpAddresses:
-      - "8.8.8.8"
-      - "8.8.4.4"
-    IsSingleInstance: "Yes"
-
-- name: Ensure that admin@cyberloop.local is present as Domain Admin
+- name: Ensure that 'admin@{{ domain_name }}' is present as Domain Admin
   win_domain_user:
     name: admin
-    password: StrongPass123!
+    password: '{{ admin_pass }}'
     password_never_expires: yes
     state: present
-    path: cn=Users,dc=CYBERLOOP,dc=local
+    path: 'cn=Users,dc={{ domain_path[0] }},dc={{ domain_path[1] }}'
     groups:
       - Domain Admins
 
-- name: Ensure that bob@cyberloop.local is present in OU cn=Users,dc=CYBERLOOP,dc=local
+- name: Ensure that 'bob@{{ domain_name }}' is present in OU 'cn=Users,dc={{ domain_path[0] }},dc={{ domain_path[1] }}'
   win_domain_user:
     name: bob
-    password: StrongPass123!
+    password: '{{ bob_pass }}'
     password_never_expires: yes
     state: present
-    path: cn=Users,dc=CYBERLOOP,dc=local
+    path: 'cn=Users,dc={{ domain_path[0] }},dc={{ domain_path[1] }}'
     groups:
       - Users
 
-- name: Ensure that alice@cyberloop.local is present in OU cn=Users,dc=CYBERLOOP,dc=local
+- name: Ensure that 'alice@{{ domain_name }}' is present in OU 'cn=Users,dc={{ domain_path[0] }},dc={{ domain_path[1] }}'
   win_domain_user:
     name: alice
-    password: StrongPass123!
+    password: '{{ alice_pass }}'
     password_never_expires: yes
     state: present
-    path: cn=Users,dc=CYBERLOOP,dc=local
+    path: 'cn=Users,dc={{ domain_path[0] }},dc={{ domain_path[1] }}'
     groups:
       - Users
 
 - name: Create AllTeams group
   win_domain_group:
-    name: allTeams
+    name: AllTeams
     scope: global
-    path: DC=cyberloop,DC=local
+    path: 'dc={{ domain_path[0] }},dc={{ domain_path[1] }}'
     state: present
 
 - name: Create DBAOracle
   win_domain_group:
     name: DBAOracle
     scope: global
-    path: DC=cyberloop,DC=local
+    path: 'dc={{ domain_path[0] }},dc={{ domain_path[1] }}'
     state: present
 
 - name: Create DBASQLServer
   win_domain_group:
     name: DBASQLServer
     scope: global
-    path: DC=cyberloop,DC=local
+    path: 'dc={{ domain_path[0] }},dc={{ domain_path[1] }}'
     state: present
 
 - name: Create DBAMongo group
   win_domain_group:
     name: DBAMongo
     scope: global
-    path: DC=cyberloop,DC=local
+    path: 'dc={{ domain_path[0] }},dc={{ domain_path[1] }}'
     state: present
 
 - name: Create DBARedis group
   win_domain_group:
     name: DBARedis
     scope: global
-    path: DC=cyberloop,DC=local
+    path: 'dc={{ domain_path[0] }},dc={{ domain_path[1] }}'
     state: present
 
 - name: Create DBAEnterprise Group
   win_domain_group:
     name: DBAEnterprise
     scope: global
-    path: DC=cyberloop,DC=local
+    path: 'dc={{ domain_path[0] }},dc={{ domain_path[1] }}'
     state: present
 
-- name: Create a Test Group
+- name: Create a Test Group (JustATestDemo)
   win_domain_group:
     name: JustATestDemo
     scope: global
-    path: DC=cyberloop,DC=local
+    path: 'dc={{ domain_path[0] }},dc={{ domain_path[1] }}'
     state: present
+
+- name: Enable firewall for Domain, Public and Private profiles
+  win_firewall:
+    state: enabled
+    profiles:
+      - Domain
+      - Private
+      - Public
+  tags: disable_firewall
+

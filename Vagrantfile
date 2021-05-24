@@ -1,5 +1,5 @@
 Vagrant.configure("2") do |config|
-  
+
   config.vm.provider "virtualbox" do |v|
     v.memory = 1024
     v.cpus = 1
@@ -39,7 +39,7 @@ Vagrant.configure("2") do |config|
     win_workstation.vm.boot_timeout = 600
     win_workstation.vm.graceful_halt_timeout = 600
     win_workstation.winrm.retry_limit = 30
-    win_workstation.winrm.retry_delay = 10    
+    win_workstation.winrm.retry_delay = 10
     win_workstation.vm.box = "StefanScherer/windows_10"
     win_workstation.vm.network "private_network", ip: "192.168.56.12"
     win_workstation.vm.network "forwarded_port", guest: 3389, host: 43389, id: "msrdp"
